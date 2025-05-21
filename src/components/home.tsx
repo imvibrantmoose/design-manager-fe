@@ -62,6 +62,10 @@ const Home = () => {
     navigate("/templates/new");
   };
 
+  const handleProfileClick = () => {
+    navigate("/profile");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -100,7 +104,10 @@ const Home = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem className="flex items-center gap-2">
+                    <DropdownMenuItem
+                      className="flex items-center gap-2"
+                      onClick={handleProfileClick}
+                    >
                       <User className="h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
@@ -150,7 +157,6 @@ const Home = () => {
               </TabsList>
               <TabsContent value="templates" className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">Design Templates</h2>
                   {(user.role === "admin" || user.role === "read-write") && (
                     <Button
                       onClick={handleCreateTemplate}
@@ -173,7 +179,6 @@ const Home = () => {
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Design Templates</h2>
                 {user.role === "read-write" && (
                   <Button
                     onClick={handleCreateTemplate}

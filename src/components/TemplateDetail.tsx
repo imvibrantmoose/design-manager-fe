@@ -33,6 +33,8 @@ import { ArrowLeft, Save, Trash2, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import templateService, { Template } from "../services/templateService";
 import { Alert, AlertDescription } from "./ui/alert";
+import { Editor } from "@tinymce/tinymce-react";
+import { API_KEYS } from "../config/keys";
 
 interface TemplateDetailProps {
   userRole?: "read" | "read-write" | "admin";
@@ -401,36 +403,54 @@ const RichTextSection = ({
   onChange,
   isEditable,
 }: RichTextSectionProps) => {
-  // This is a placeholder for a rich text editor
-  // In a real implementation, you would integrate a rich text editor like TinyMCE, CKEditor, or Quill
   return (
     <div className="space-y-2">
       <h3 className="text-lg font-medium">{title}</h3>
       {isEditable ? (
-        <div className="border rounded-md p-2">
-          {/* Placeholder for rich text editor */}
-          <div className="bg-muted/20 p-2 mb-2 flex gap-2 rounded-md">
-            <Button variant="outline" size="sm">
-              Bold
-            </Button>
-            <Button variant="outline" size="sm">
-              Italic
-            </Button>
-            <Button variant="outline" size="sm">
-              List
-            </Button>
-            <Button variant="outline" size="sm">
-              Image
-            </Button>
-          </div>
-          <Textarea
-            value={content}
-            onChange={(e) => onChange(e.target.value)}
-            rows={10}
-            className="w-full"
-            placeholder="Enter content here..."
-          />
-        </div>
+        <Editor
+          apiKey={API_KEYS.TINYMCE}
+          value={content}
+          onEditorChange={(content) => onChange(content)}
+          init={{
+            height: 400,
+            menubar: false,
+            plugins: [
+              "advlist",
+              "autolink",
+              "lists",
+              "link",
+              "image",
+              "charmap",
+              "preview",
+              "searchreplace",
+              "visualblocks",
+              "code",
+              "fullscreen",
+              "insertdatetime",
+              "media",
+              "table",
+              "code",
+              "help",
+              "wordcount",
+            ],
+            toolbar:
+              "undo redo | blocks | " +
+              "bold italic forecolor | alignleft aligncenter " +
+              "alignright alignjustify | bullist numlist outdent indent | " +
+              "removeformat | image media | help",
+            content_style:
+              "body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif; font-size: 14px }",
+            images_upload_handler: async (blobInfo) => {
+              // This is a basic example that converts the image to base64
+              // In production, you should upload to your server/cloud storage
+              return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blobInfo.blob());
+              });
+            },
+          }}
+        />
       ) : (
         <div
           className="border rounded-md p-4 prose max-w-none"

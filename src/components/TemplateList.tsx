@@ -84,7 +84,8 @@ const TemplateList = ({
   const filteredTemplates = templates.filter((template) => {
     const matchesSearch =
       template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      template.description.toLowerCase().includes(searchTerm.toLowerCase());
+      template.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      template.designContext.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       categoryFilter === "all" || template.category === categoryFilter;
     return matchesSearch && matchesCategory;
@@ -109,6 +110,21 @@ const TemplateList = ({
   };
 
   const canModifyTemplates = userRole === "read-write" || userRole === "admin";
+
+  // Function to extract the first image URL from HTML content
+  const extractFirstImage = (html: string): string | null => {
+    const imgRegex = /<img.*?src=["'](.*?)["']/;
+    const match = html.match(imgRegex);
+    return match ? match[1] : null;
+  };
+
+  // Add this function to strip HTML and truncate text
+  const getContextPreview = (html: string): string => {
+    const strippedText = html.replace(/<[^>]*>/g, "");
+    return strippedText.length > 150
+      ? strippedText.substring(0, 150) + "..."
+      : strippedText;
+  };
 
   if (loading) {
     return (
@@ -136,11 +152,6 @@ const TemplateList = ({
       <div className="flex flex-col space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-3xl font-bold">Design Templates</h1>
-          {canModifyTemplates && (
-            <Button onClick={() => navigate("/templates/new")}>
-              Create New Template
-            </Button>
-          )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-4">
@@ -178,85 +189,104 @@ const TemplateList = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTemplates.map((template) => (
-              <Card key={template.id} className="flex flex-col h-full">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-xl">
-                        {template.title}
-                      </CardTitle>
-                      <Badge variant="secondary" className="mt-2">
-                        {template.category}
-                      </Badge>
+            {filteredTemplates.map((template) => {
+              const firstImage = extractFirstImage(template.designContext);
+              const contextPreview = getContextPreview(template.designContext);
+
+              return (
+                <Card key={template.id} className="flex flex-col h-full">
+                  {firstImage && (
+                    <img
+                      src={firstImage}
+                      alt={template.title}
+                      className="h-48 w-full object-cover rounded-t-md"
+                    />
+                  )}
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-xl">
+                          {template.title}
+                        </CardTitle>
+                        <Badge variant="secondary" className="mt-2">
+                          {template.category}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <CardDescription className="text-sm text-muted-foreground">
-                    {template.description}
-                  </CardDescription>
-                </CardContent>
-                <CardFooter className="flex justify-between border-t pt-4">
-                  <div className="text-xs text-muted-foreground">
-                    Updated {new Date(template.updatedAt).toLocaleDateString()}
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewTemplate(template.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    {canModifyTemplates && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditTemplate(template.id)}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete the template.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() =>
-                                  handleDeleteTemplate(template.id)
-                                }
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-4">
+                    <CardDescription className="text-sm text-muted-foreground">
+                      {template.description}
+                    </CardDescription>
+                    {contextPreview && (
+                      <div className="border-t pt-4">
+                        <p className="text-sm text-muted-foreground">
+                          {contextPreview}
+                        </p>
+                      </div>
                     )}
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
+                  </CardContent>
+                  <CardFooter className="flex justify-between border-t pt-4">
+                    <div className="text-xs text-muted-foreground">
+                      Updated {new Date(template.updatedAt).toLocaleDateString()}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewTemplate(template.id)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      {canModifyTemplates && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditTemplate(template.id)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will
+                                  permanently delete the template.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleDeleteTemplate(template.id)
+                                  }
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      )}
+                    </div>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
