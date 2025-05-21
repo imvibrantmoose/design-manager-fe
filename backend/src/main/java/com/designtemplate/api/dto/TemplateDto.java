@@ -1,0 +1,29 @@
+package com.designtemplate.api.dto;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class TemplateDto {
+    private String id;
+    private String title;
+    private String category;
+    private String description;
+    private String designContext;
+    private String systemImpacts;
+    private String assumptions;
+    private String outOfScope;
+    private String otherAreasToConsider;
+    private String appendix;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}
