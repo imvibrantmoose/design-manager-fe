@@ -33,11 +33,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Save, Trash2, Loader2, FileDown, FileText } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import templateService, { Template, CommentType } from "../services/templateService";
-import { Alert, AlertDescription } from "./ui/alert";
+import templateService, { Template, CommentType } from "../../../services/templateService";
+import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Toaster, toast } from 'react-hot-toast';
-import Comments from './Comments';
-import { exportToPdf, exportToMarkdown } from "../utils/exportUtils";
+import Comments from '../../../components/Comments';
+import { exportToPdf, exportToMarkdown } from "../../../utils/exportUtils";
 
 interface TemplateDetailProps {
   userRole?: "read" | "read-write" | "admin";

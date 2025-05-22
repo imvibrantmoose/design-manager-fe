@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import TemplateDetail from './TemplateDetail';
+import TemplateDetail from '../features/templates/pages/TemplateDetail';
 // Update the import path to match the actual file name and extension, for example:
 import UserManagement from './UserManagement';
 // Or, if the file is named differently, update accordingly, e.g.:
