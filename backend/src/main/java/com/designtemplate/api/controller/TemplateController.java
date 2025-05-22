@@ -1,9 +1,13 @@
 package com.designtemplate.api.controller;
 
+import com.designtemplate.api.dto.CommentDto;
 import com.designtemplate.api.dto.TemplateDto;
 import com.designtemplate.api.service.TemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -20,8 +24,11 @@ public class TemplateController {
     private final TemplateService templateService;
 
     @GetMapping
-    public ResponseEntity<List<TemplateDto>> getAllTemplates() {
-        return ResponseEntity.ok(templateService.getAllTemplates());
+    public ResponseEntity<Page<TemplateDto>> getAllTemplates(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(templateService.getAllTemplates(pageable));
     }
 
     @GetMapping("/{id}")
@@ -62,5 +69,29 @@ public class TemplateController {
     public ResponseEntity<Void> deleteTemplate(@PathVariable String id) {
         templateService.deleteTemplate(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/like")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TemplateDto> toggleLike(
+            @PathVariable String id,
+            Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok(templateService.toggleLike(id, userDetails.getUsername()));
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<List<CommentDto>> getComments(@PathVariable String id) {
+        return ResponseEntity.ok(templateService.getComments(id));
+    }
+
+    @PostMapping("/{id}/comments")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<CommentDto> addComment(
+            @PathVariable String id,
+            @Valid @RequestBody CommentDto commentDto,
+            Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok(templateService.addComment(id, commentDto, userDetails.getUsername()));
     }
 }

@@ -17,9 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { Search, Edit, Trash2, Eye, Loader2, User as UserIcon, Heart, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import templateService, { Template } from "../services/templateService";
+import userService, { User } from "../services/userService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,34 +36,68 @@ import {
 interface TemplateListProps {
   userRole?: "read" | "read-write" | "admin";
   searchQuery?: string;
+  userId?: string; // Add userId prop
+}
+
+interface PaginatedResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+  size: number;
 }
 
 const TemplateList = ({
   userRole = "read",
   searchQuery = "",
+  userId = "",
 }: TemplateListProps) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState(searchQuery);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [users, setUsers] = useState<Record<string, User>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>(["all"]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pageSize] = useState(9);
+  const [totalTemplates, setTotalTemplates] = useState(0);
 
   // Fetch templates from API
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
         setLoading(true);
-        const data = await templateService.getAllTemplates();
-        setTemplates(data);
+        const response = await templateService.getAllTemplates(currentPage, pageSize);
+        
+        // Type guard to check if response is paginated
+        const isPaginatedResponse = (response: any): response is PaginatedResponse<Template> => {
+          return 'content' in response && 'totalPages' in response;
+        };
 
-        // Extract unique categories
-        const uniqueCategories = [
-          "all",
-          ...new Set(data.map((template) => template.category)),
-        ];
-        setCategories(uniqueCategories);
+        if (isPaginatedResponse(response)) {
+          setTemplates(response.content);
+          setTotalPages(response.totalPages);
+          setTotalTemplates(response.totalElements);
+          
+          const uniqueCategories = [
+            "all",
+            ...new Set(response.content.map((template) => template.category)),
+          ];
+          setCategories(uniqueCategories);
+        } else {
+          // Handle non-paginated response
+          setTemplates(response);
+          setTotalPages(1);
+          
+          const uniqueCategories = [
+            "all",
+            ...new Set(response.map((template) => template.category)),
+          ];
+          setCategories(uniqueCategories);
+        }
 
         setError(null);
       } catch (err: any) {
@@ -73,12 +108,35 @@ const TemplateList = ({
     };
 
     fetchTemplates();
-  }, []);
+  }, [currentPage, pageSize]);
 
   // Update searchTerm when searchQuery prop changes
   useEffect(() => {
     setSearchTerm(searchQuery);
   }, [searchQuery]);
+
+  // Fetch user details for each template
+  useEffect(() => {
+    const fetchUserDetails = async (createdBy: string) => {
+      if (!createdBy) return; // Skip if createdBy is empty
+      
+      try {
+        const userData = await userService.getUserById(createdBy);
+        setUsers((prev) => ({ ...prev, [createdBy]: userData }));
+      } catch (err) {
+        console.error(`Failed to fetch user details for ${createdBy}`, err);
+        // Add a placeholder for failed fetches to prevent retries
+        setUsers((prev) => ({ ...prev, [createdBy]: { id: createdBy, name: 'Unknown User' } as User }));
+      }
+    };
+
+    // Only fetch for templates with valid createdBy
+    templates.forEach((template) => {
+      if (template.createdBy && !users[template.createdBy]) {
+        fetchUserDetails(template.createdBy);
+      }
+    });
+  }, [templates, users]); // Add users to dependency array
 
   // Filter templates based on search term and category
   const filteredTemplates = templates.filter((template) => {
@@ -109,7 +167,35 @@ const TemplateList = ({
     }
   };
 
+  // Add safety check for likes in handleLike function
+  const handleLike = async (templateId: string) => {
+    try {
+      await templateService.toggleLike(templateId);
+      // Refresh templates after like
+      const updatedTemplates = templates.map(t => {
+        if (t.id === templateId) {
+          return {
+            ...t,
+            likes: (t.likes || []).includes(userId) 
+              ? (t.likes || []).filter(id => id !== userId)
+              : [...(t.likes || []), userId]
+          };
+        }
+        return t;
+      });
+      setTemplates(updatedTemplates);
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
+    }
+  };
+
   const canModifyTemplates = userRole === "read-write" || userRole === "admin";
+
+  const canEditTemplate = (templateCreatedBy: string) => {
+    if (userRole === "admin") return true;
+    if (userRole === "read-write" && templateCreatedBy === userId) return true;
+    return false;
+  };
 
   // Function to extract the first image URL from HTML content
   const extractFirstImage = (html: string): string | null => {
@@ -125,6 +211,31 @@ const TemplateList = ({
       ? strippedText.substring(0, 150) + "..."
       : strippedText;
   };
+
+  // Add pagination controls
+  const Pagination = () => (
+    <div className="flex justify-center items-center gap-2 mt-6">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+        disabled={currentPage === 0}
+      >
+        Previous
+      </Button>
+      <span className="text-sm text-muted-foreground">
+        Page {currentPage + 1} of {totalPages}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+        disabled={currentPage >= totalPages - 1}
+      >
+        Next
+      </Button>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -152,6 +263,9 @@ const TemplateList = ({
       <div className="flex flex-col space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-3xl font-bold">Design Templates</h1>
+          <span className="text-muted-foreground">
+            {totalTemplates} {totalTemplates === 1 ? 'template' : 'templates'}
+          </span>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4">
@@ -190,6 +304,9 @@ const TemplateList = ({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTemplates.map((template) => {
+              // console log template for debugging
+              console.log("Template:", template);
+              
               const firstImage = extractFirstImage(template.designContext);
               const contextPreview = getContextPreview(template.designContext);
 
@@ -208,7 +325,13 @@ const TemplateList = ({
                         <CardTitle className="text-xl">
                           {template.title}
                         </CardTitle>
-                        <Badge variant="secondary" className="mt-2">
+                        <div className="flex items-center gap-2 mt-2 mb-2">
+                          <UserIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            Created by {users[template.createdBy]?.name || "Loading..."}
+                          </span>
+                        </div>
+                        <Badge variant="secondary">
                           {template.category}
                         </Badge>
                       </div>
@@ -227,8 +350,24 @@ const TemplateList = ({
                     )}
                   </CardContent>
                   <CardFooter className="flex justify-between border-t pt-4">
-                    <div className="text-xs text-muted-foreground">
-                      Updated {new Date(template.updatedAt).toLocaleDateString()}
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLike(template.id)}
+                        className={(template.likes || []).includes(userId) ? "text-red-500" : ""}
+                      >
+                        <Heart className="h-4 w-4 mr-1" />
+                        {(template.likes || []).length}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/templates/${template.id}`)}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        {template.commentCount || 0}
+                      </Button>
                     </div>
                     <div className="flex space-x-2">
                       <Button
@@ -239,47 +378,51 @@ const TemplateList = ({
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
-                      {canModifyTemplates && (
+                      {(userRole === "read-write" || userRole === "admin") && (
                         <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditTemplate(template.id)}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will
-                                  permanently delete the template.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeleteTemplate(template.id)
-                                  }
+                          {canEditTemplate(template.createdBy) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditTemplate(template.id)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          )}
+                          {(userRole === "admin" || template.createdBy === userId) && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                 >
+                                  <Trash2 className="h-4 w-4 mr-1" />
                                   Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will
+                                    permanently delete the template.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDeleteTemplate(template.id)
+                                    }
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </>
                       )}
                     </div>
@@ -289,6 +432,7 @@ const TemplateList = ({
             })}
           </div>
         )}
+        <Pagination />
       </div>
     </div>
   );

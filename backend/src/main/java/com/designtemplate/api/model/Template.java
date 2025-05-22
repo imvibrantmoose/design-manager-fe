@@ -8,6 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Builder
@@ -41,4 +43,8 @@ public class Template {
     private LocalDateTime updatedAt;
     
     private String createdBy;
+    
+    private Set<String> likes = new HashSet<>();
+    
+    private int commentCount = 0;
 }

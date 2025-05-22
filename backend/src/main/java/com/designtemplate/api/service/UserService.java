@@ -84,6 +84,12 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
+    public UserDto getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+            .map(this::convertToDto)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+    }
+
     private UserDto convertToDto(User user) {
         return UserDto.builder()
                 .id(user.getId())

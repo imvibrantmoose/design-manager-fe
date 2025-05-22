@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 @Builder
@@ -24,6 +25,9 @@ public class TemplateDto {
     private String outOfScope;
     private String otherAreasToConsider;
     private String appendix;
+    private String createdBy; // Make sure this field exists
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Set<String> likes;
+    private int commentCount;
 }

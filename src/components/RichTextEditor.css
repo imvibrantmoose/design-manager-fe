@@ -1,0 +1,41 @@
+/* Light mode */
+.ql-toolbar.ql-snow {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background));
+}
+
+.ql-container.ql-snow {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background));
+}
+
+.ql-editor {
+  color: hsl(var(--foreground));
+}
+
+/* Dark mode */
+[data-theme='dark'] .ql-toolbar.ql-snow {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background));
+}
+
+[data-theme='dark'] .ql-container.ql-snow {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background));
+}
+
+[data-theme='dark'] .ql-editor {
+  color: hsl(var(--foreground));
+}
+
+[data-theme='dark'] .ql-snow .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+[data-theme='dark'] .ql-snow .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+[data-theme='dark'] .ql-snow .ql-picker {
+  color: hsl(var(--foreground));
+}

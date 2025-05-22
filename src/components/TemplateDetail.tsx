@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import {
   Card,
   CardContent,
@@ -31,10 +33,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Save, Trash2, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import templateService, { Template } from "../services/templateService";
+import templateService, { Template, CommentType } from "../services/templateService";
 import { Alert, AlertDescription } from "./ui/alert";
-import { Editor } from "@tinymce/tinymce-react";
-import { API_KEYS } from "../config/keys";
+import { Toaster, toast } from 'react-hot-toast';
+import Comments from './Comments';
 
 interface TemplateDetailProps {
   userRole?: "read" | "read-write" | "admin";
@@ -60,6 +62,7 @@ const TemplateDetail = ({
     "Product Design",
     "Web",
   ]);
+  const [comments, setComments] = useState<CommentType[]>([]);
 
   const emptyTemplate: Template = {
     id: "",
@@ -74,6 +77,10 @@ const TemplateDetail = ({
     appendix: "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    createdBy: "",
+    createdByName: "",
+    likes: [], // Add this
+    commentCount: 0 // Add this
   };
 
   const [template, setTemplate] = useState<Template>(emptyTemplate);
@@ -99,11 +106,43 @@ const TemplateDetail = ({
     }
   }, [id, isNew]);
 
+  useEffect(() => {
+    if (!isNew && id) {
+      const fetchComments = async () => {
+        try {
+          const data = await templateService.getComments(id);
+          setComments(data);
+        } catch (err) {
+          console.error('Failed to fetch comments:', err);
+        }
+      };
+      fetchComments();
+    }
+  }, [id, isNew]);
+
   const handleInputChange = (field: string, value: string) => {
     setTemplate((prev) => ({ ...prev, [field]: value }));
   };
 
+  const validateTemplate = () => {
+    if (!template.title.trim()) {
+      toast.error('Title is required');
+      return false;
+    }
+    if (!template.description.trim()) {
+      toast.error('Description is required');
+      return false;
+    }
+    if (!template.designContext.trim()) {
+      toast.error('Design Context is required');
+      return false;
+    }
+    return true;
+  };
+
   const handleSave = async () => {
+    if (!validateTemplate()) return;
+
     try {
       setSaving(true);
       setError(null);
@@ -111,16 +150,19 @@ const TemplateDetail = ({
       let savedTemplate;
       if (isNew) {
         savedTemplate = await templateService.createTemplate(template);
+        toast.success('Template created successfully');
       } else {
         savedTemplate = await templateService.updateTemplate(
           template.id,
           template,
         );
+        toast.success('Template updated successfully');
       }
 
       // Navigate back to templates list after successful save
       navigate("/templates");
     } catch (err: any) {
+      toast.error(err.message || "Failed to save template");
       setError(err.message || "Failed to save template");
     } finally {
       setSaving(false);
@@ -131,8 +173,10 @@ const TemplateDetail = ({
     try {
       setLoading(true);
       await templateService.deleteTemplate(template.id);
+      toast.success('Template deleted successfully');
       navigate("/templates");
     } catch (err: any) {
+      toast.error(err.message || "Failed to delete template");
       setError(err.message || "Failed to delete template");
       setLoading(false);
     }
@@ -140,6 +184,20 @@ const TemplateDetail = ({
 
   const handleBack = () => {
     navigate("/templates");
+  };
+
+  const handleAddComment = async (content: string) => {
+    if (!id) return;
+    try {
+      const newComment = await templateService.addComment(id, content);
+      setComments(prev => [newComment, ...prev]);
+      setTemplate(prev => ({
+        ...prev,
+        commentCount: (prev.commentCount || 0) + 1
+      }));
+    } catch (err) {
+      toast.error('Failed to add comment');
+    }
   };
 
   if (loading) {
@@ -153,6 +211,7 @@ const TemplateDetail = ({
 
   return (
     <div className="container mx-auto p-4 bg-background">
+      <Toaster position="top-right" />
       <div className="flex items-center mb-6">
         <Button variant="ghost" onClick={handleBack} className="mr-2">
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -243,6 +302,8 @@ const TemplateDetail = ({
                 value={template.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 disabled={!isEditable && !isNew}
+                required
+                className={template.title.trim() ? "" : "border-red-500"}
               />
             </div>
             <div className="space-y-2">
@@ -281,15 +342,17 @@ const TemplateDetail = ({
               value={template.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
               disabled={!isEditable && !isNew}
+              required
+              className={template.description.trim() ? "" : "border-red-500"}
               rows={3}
             />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Template Details</CardTitle>
+      <Card className="mb-6 shadow-md">
+        <CardHeader className="border-b">
+          <CardTitle className="text-xl text-primary">Template Details</CardTitle>
           <CardDescription>
             Detailed information and specifications
           </CardDescription>
@@ -309,7 +372,7 @@ const TemplateDetail = ({
               <TabsTrigger value="appendix">Appendix</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="design-context" className="mt-4">
+            <TabsContent value="design-context" className="mt-6 px-4">
               <RichTextSection
                 title="Design Context"
                 content={template.designContext || ""}
@@ -318,7 +381,7 @@ const TemplateDetail = ({
               />
             </TabsContent>
 
-            <TabsContent value="system-impacts" className="mt-4">
+            <TabsContent value="system-impacts" className="mt-6 px-4">
               <RichTextSection
                 title="System Impacts"
                 content={template.systemImpacts || ""}
@@ -327,7 +390,7 @@ const TemplateDetail = ({
               />
             </TabsContent>
 
-            <TabsContent value="assumptions" className="mt-4">
+            <TabsContent value="assumptions" className="mt-6 px-4">
               <RichTextSection
                 title="Assumptions"
                 content={template.assumptions || ""}
@@ -336,7 +399,7 @@ const TemplateDetail = ({
               />
             </TabsContent>
 
-            <TabsContent value="out-of-scope" className="mt-4">
+            <TabsContent value="out-of-scope" className="mt-6 px-4">
               <RichTextSection
                 title="Out of Scope"
                 content={template.outOfScope || ""}
@@ -345,7 +408,7 @@ const TemplateDetail = ({
               />
             </TabsContent>
 
-            <TabsContent value="other-areas" className="mt-4">
+            <TabsContent value="other-areas" className="mt-6 px-4">
               <RichTextSection
                 title="Other Areas to Consider"
                 content={template.otherAreasToConsider || ""}
@@ -356,7 +419,7 @@ const TemplateDetail = ({
               />
             </TabsContent>
 
-            <TabsContent value="appendix" className="mt-4">
+            <TabsContent value="appendix" className="mt-6 px-4">
               <RichTextSection
                 title="Appendix"
                 content={template.appendix || ""}
@@ -386,6 +449,19 @@ const TemplateDetail = ({
           )}
         </CardFooter>
       </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Comments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Comments
+            templateId={template.id}
+            onAddComment={handleAddComment}
+            comments={comments}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
@@ -397,68 +473,89 @@ interface RichTextSectionProps {
   isEditable: boolean;
 }
 
-const RichTextSection = ({
-  title,
-  content,
-  onChange,
-  isEditable,
-}: RichTextSectionProps) => {
-  return (
-    <div className="space-y-2">
-      <h3 className="text-lg font-medium">{title}</h3>
-      {isEditable ? (
-        <Editor
-          apiKey={API_KEYS.TINYMCE}
-          value={content}
-          onEditorChange={(content) => onChange(content)}
-          init={{
-            height: 400,
-            menubar: false,
-            plugins: [
-              "advlist",
-              "autolink",
-              "lists",
-              "link",
-              "image",
-              "charmap",
-              "preview",
-              "searchreplace",
-              "visualblocks",
-              "code",
-              "fullscreen",
-              "insertdatetime",
-              "media",
-              "table",
-              "code",
-              "help",
-              "wordcount",
-            ],
-            toolbar:
-              "undo redo | blocks | " +
-              "bold italic forecolor | alignleft aligncenter " +
-              "alignright alignjustify | bullist numlist outdent indent | " +
-              "removeformat | image media | help",
-            content_style:
-              "body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif; font-size: 14px }",
-            images_upload_handler: async (blobInfo) => {
-              // This is a basic example that converts the image to base64
-              // In production, you should upload to your server/cloud storage
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(blobInfo.blob());
-              });
-            },
-          }}
-        />
-      ) : (
-        <div
-          className="border rounded-md p-4 prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
-      )}
-    </div>
-  );
-};
+const RichTextSection = forwardRef<ReactQuill, RichTextSectionProps>(
+  ({ title, content, onChange, isEditable }, ref) => {
+    const modules = {
+      toolbar: [
+        [{ header: [1, 2, false] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link", "image"],
+        [{ align: [] }],
+        ["clean"],
+      ],
+    };
+
+    const formats = [
+      "header",
+      "bold",
+      "italic",
+      "underline",
+      "strike",
+      "list",
+      "bullet",
+      "link",
+      "image",
+      "align",
+    ];
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-xl font-medium text-primary">{title}</h3>
+        {isEditable ? (
+          <div className="rich-text-editor">
+            <ReactQuill
+              ref={ref}
+              theme="snow"
+              value={content}
+              onChange={onChange}
+              modules={modules}
+              formats={formats}
+              className="bg-background min-h-[500px]"
+              style={{ height: '500px' }}
+            />
+            <style>{`
+              .rich-text-editor .ql-container {
+                height: calc(500px - 42px) !important;
+                font-size: 16px;
+              }
+              .rich-text-editor .ql-editor {
+                padding: 1.5rem;
+              }
+              .rich-text-editor .ql-toolbar {
+                border-top-left-radius: 0.5rem;
+                border-top-right-radius: 0.5rem;
+                background-color: hsl(var(--background));
+                border-color: hsl(var(--border));
+              }
+              .rich-text-editor .ql-container {
+                border-bottom-left-radius: 0.5rem;
+                border-bottom-right-radius: 0.5rem;
+                background-color: hsl(var(--background));
+                border-color: hsl(var(--border));
+              }
+              .rich-text-editor .ql-editor {
+                color: hsl(var(--foreground));
+              }
+              :root[class~='dark'] .rich-text-editor .ql-snow .ql-stroke {
+                stroke: hsl(var(--foreground));
+              }
+              :root[class~='dark'] .rich-text-editor .ql-snow .ql-fill {
+                fill: hsl(var(--foreground));
+              }
+            `}</style>
+          </div>
+        ) : (
+          <div
+            className="border rounded-md p-6 prose dark:prose-invert max-w-none min-h-[300px] bg-background"
+            dangerouslySetInnerHTML={{ __html: content }}
+          />
+        )}
+      </div>
+    );
+  }
+);
+
+RichTextSection.displayName = "RichTextSection";
 
 export default TemplateDetail;

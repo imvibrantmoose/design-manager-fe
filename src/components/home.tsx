@@ -16,6 +16,7 @@ import TemplateList from "./TemplateList";
 import AdminDashboard from "./AdminDashboard";
 import AuthForms from "./AuthForms";
 import authService, { AuthResponse } from "../services/authService";
+import { ModeToggle } from "./mode-toggle";
 
 interface UserType {
   id: string;
@@ -69,7 +70,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-white">
+      <header className="border-b bg-background">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center">
             <h1 className="text-xl font-bold text-primary">
@@ -80,6 +81,7 @@ const Home = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <>
+                <ModeToggle />
                 <div className="relative w-64">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input

@@ -4,18 +4,34 @@ import com.designtemplate.api.dto.TemplateDto;
 import com.designtemplate.api.exception.ResourceNotFoundException;
 import com.designtemplate.api.model.Template;
 import com.designtemplate.api.repository.TemplateRepository;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+import com.designtemplate.api.dto.CommentDto;
+import com.designtemplate.api.model.Comment;
+import com.designtemplate.api.repository.CommentRepository;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TemplateService {
-
     private final TemplateRepository templateRepository;
+    private final CommentRepository commentRepository;
+
+    public Page<TemplateDto> getAllTemplates(Pageable pageable) {
+        return templateRepository.findAll(pageable)
+                .map(this::convertToDto);
+    }
 
     public List<TemplateDto> getAllTemplates() {
         return templateRepository.findAll().stream()
@@ -105,6 +121,53 @@ public class TemplateService {
         templateRepository.deleteById(id);
     }
 
+    public TemplateDto toggleLike(String templateId, String userId) {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Template not found with id: " + templateId));
+
+        Set<String> likes = template.getLikes();
+        if (likes == null) {
+            likes = new HashSet<>();
+        }
+
+        if (likes.contains(userId)) {
+            likes.remove(userId);
+        } else {
+            likes.add(userId);
+        }
+
+        template.setLikes(likes);
+        Template savedTemplate = templateRepository.save(template);
+        return convertToDto(savedTemplate);
+    }
+
+    public List<CommentDto> getComments(String templateId) {
+        List<Comment> comments = commentRepository.findByTemplateIdOrderByCreatedAtDesc(templateId);
+        return comments.stream()
+                .map(this::convertToCommentDto)
+                .collect(Collectors.toList());
+    }
+
+    public CommentDto addComment(String templateId, CommentDto commentDto, String userId) {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Template not found"));
+
+        Comment comment = Comment.builder()
+                .templateId(templateId)
+                .userId(userId)
+                .content(commentDto.getContent())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Comment savedComment = commentRepository.save(comment);
+
+        // Update comment count on template
+        template.setCommentCount(template.getCommentCount() + 1);
+        templateRepository.save(template);
+
+        return convertToCommentDto(savedComment);
+    }
+
     private TemplateDto convertToDto(Template template) {
         return TemplateDto.builder()
                 .id(template.getId())
@@ -117,8 +180,21 @@ public class TemplateService {
                 .outOfScope(template.getOutOfScope())
                 .otherAreasToConsider(template.getOtherAreasToConsider())
                 .appendix(template.getAppendix())
+                .createdBy(template.getCreatedBy())
                 .createdAt(template.getCreatedAt())
                 .updatedAt(template.getUpdatedAt())
+                .likes(template.getLikes())
+                .commentCount(template.getCommentCount())
+                .build();
+    }
+
+    private CommentDto convertToCommentDto(Comment comment) {
+        return CommentDto.builder()
+                .id(comment.getId())
+                .templateId(comment.getTemplateId())
+                .userId(comment.getUserId())
+                .content(comment.getContent())
+                .createdAt(comment.getCreatedAt())
                 .build();
     }
 }
