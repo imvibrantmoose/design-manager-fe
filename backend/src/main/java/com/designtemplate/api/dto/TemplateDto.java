@@ -30,4 +30,6 @@ public class TemplateDto {
     private LocalDateTime updatedAt;
     private Set<String> likes;
     private int commentCount;
+    private int bookmarkCount;
+    private boolean isBookmarked;
 }

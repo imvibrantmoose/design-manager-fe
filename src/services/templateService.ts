@@ -15,17 +15,19 @@ export interface Template {
   category: string;
   description: string;
   designContext: string;
-  systemImpacts?: string;
-  assumptions?: string;
-  outOfScope?: string;
-  otherAreasToConsider?: string;
-  appendix?: string;
+  systemImpacts: string;
+  assumptions: string;
+  outOfScope: string;
+  otherAreasToConsider: string;
+  appendix: string;
   createdBy: string; // Use this instead of userId
   createdByName: string; // Add this field
   createdAt: string;
   updatedAt: string;
   likes: string[];
   commentCount: number;
+  bookmarkCount: number;
+  isBookmarked?: boolean;
 }
 
 const templateService = {
@@ -60,6 +62,11 @@ const templateService = {
 
   toggleLike: async (id: string): Promise<Template> => {
     const response = await api.post(`/templates/${id}/like`);
+    return response.data;
+  },
+
+  toggleBookmark: async (id: string): Promise<Template> => {
+    const response = await api.post(`/templates/${id}/bookmark`);
     return response.data;
   },
 

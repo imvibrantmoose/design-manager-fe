@@ -14,6 +14,8 @@ export interface Template {
     updatedAt: string;
     likes: string[];
     commentCount: number;
+    bookmarkCount: number;
+    isBookmarked?: boolean;
 }
 
 export interface Comment {

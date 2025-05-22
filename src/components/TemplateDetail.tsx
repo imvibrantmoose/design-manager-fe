@@ -79,8 +79,10 @@ const TemplateDetail = ({
     updatedAt: new Date().toISOString(),
     createdBy: "",
     createdByName: "",
-    likes: [], // Add this
-    commentCount: 0 // Add this
+    likes: [], 
+    commentCount: 0,
+    bookmarkCount: 0,
+    isBookmarked: false
   };
 
   const [template, setTemplate] = useState<Template>(emptyTemplate);

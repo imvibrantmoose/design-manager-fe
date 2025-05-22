@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Edit, Trash2, Eye, Loader2, User as UserIcon, Heart, MessageCircle } from "lucide-react";
+import { Search, Edit, Trash2, Eye, Loader2, User as UserIcon, Heart, MessageCircle, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import templateService, { Template } from "../services/templateService";
 import userService, { User } from "../services/userService";
@@ -186,6 +186,26 @@ const TemplateList = ({
       setTemplates(updatedTemplates);
     } catch (err) {
       console.error('Failed to toggle like:', err);
+    }
+  };
+
+  const handleBookmark = async (templateId: string) => {
+    try {
+      await templateService.toggleBookmark(templateId);
+      // Update templates after bookmark
+      const updatedTemplates = templates.map(t => {
+        if (t.id === templateId) {
+          return {
+            ...t,
+            isBookmarked: !t.isBookmarked,
+            bookmarkCount: (t.isBookmarked ? t.bookmarkCount - 1 : t.bookmarkCount + 1)
+          };
+        }
+        return t;
+      });
+      setTemplates(updatedTemplates);
+    } catch (err) {
+      console.error('Failed to toggle bookmark:', err);
     }
   };
 
@@ -359,6 +379,15 @@ const TemplateList = ({
                       >
                         <Heart className="h-4 w-4 mr-1" />
                         {(template.likes || []).length}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleBookmark(template.id)}
+                        className={template.isBookmarked ? "text-yellow-500" : ""}
+                      >
+                        <Bookmark className="h-4 w-4 mr-1" />
+                        {template.bookmarkCount || 0}
                       </Button>
                       <Button
                         variant="ghost"

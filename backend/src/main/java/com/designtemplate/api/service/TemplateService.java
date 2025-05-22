@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -141,6 +142,34 @@ public class TemplateService {
         return convertToDto(savedTemplate);
     }
 
+    public TemplateDto toggleBookmark(String templateId, String userId) {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Template not found"));
+
+        Set<String> bookmarks = template.getBookmarks();
+        if (bookmarks == null) {
+            bookmarks = new HashSet<>();
+        }
+
+        if (bookmarks.contains(userId)) {
+            bookmarks.remove(userId);
+            template.setBookmarkCount(template.getBookmarkCount() - 1);
+        } else {
+            bookmarks.add(userId);
+            template.setBookmarkCount(template.getBookmarkCount() + 1);
+        }
+
+        template.setBookmarks(bookmarks);
+        Template savedTemplate = templateRepository.save(template);
+        return convertToDto(savedTemplate);
+    }
+
+    public List<TemplateDto> getBookmarkedTemplates(String userId) {
+        return templateRepository.findByBookmarksContaining(userId).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     public List<CommentDto> getComments(String templateId) {
         List<Comment> comments = commentRepository.findByTemplateIdOrderByCreatedAtDesc(templateId);
         return comments.stream()
@@ -168,6 +197,10 @@ public class TemplateService {
         return convertToCommentDto(savedComment);
     }
 
+    private String getUserId() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
     private TemplateDto convertToDto(Template template) {
         return TemplateDto.builder()
                 .id(template.getId())
@@ -185,6 +218,8 @@ public class TemplateService {
                 .updatedAt(template.getUpdatedAt())
                 .likes(template.getLikes())
                 .commentCount(template.getCommentCount())
+                .bookmarkCount(template.getBookmarkCount()) // Ensure TemplateDto has 'bookmarkCount' field with @Builder
+                .isBookmarked(template.getBookmarks().contains(getUserId()))
                 .build();
     }
 

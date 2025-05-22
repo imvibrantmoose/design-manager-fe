@@ -47,4 +47,8 @@ public class Template {
     private Set<String> likes = new HashSet<>();
     
     private int commentCount = 0;
+    
+    private Set<String> bookmarks = new HashSet<>();
+    
+    private int bookmarkCount = 0;
 }

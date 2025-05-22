@@ -80,6 +80,22 @@ public class TemplateController {
         return ResponseEntity.ok(templateService.toggleLike(id, userDetails.getUsername()));
     }
 
+    @PostMapping("/{id}/bookmark")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TemplateDto> toggleBookmark(
+            @PathVariable String id,
+            Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok(templateService.toggleBookmark(id, userDetails.getUsername()));
+    }
+
+    @GetMapping("/bookmarked")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<TemplateDto>> getBookmarkedTemplates(Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok(templateService.getBookmarkedTemplates(userDetails.getUsername()));
+    }
+
     @GetMapping("/{id}/comments")
     public ResponseEntity<List<CommentDto>> getComments(@PathVariable String id) {
         return ResponseEntity.ok(templateService.getComments(id));

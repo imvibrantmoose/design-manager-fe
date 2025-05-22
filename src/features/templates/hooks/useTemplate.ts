@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Template } from '../types';
-import { templateService } from '../services/templateService';
+import templateService from '../services/templateService';
 
 export const useTemplate = (id?: string) => {
   const [template, setTemplate] = useState<Template | null>(null);

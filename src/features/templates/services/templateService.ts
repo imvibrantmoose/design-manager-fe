@@ -1,7 +1,7 @@
 import api from "../../../lib/api";
 import { Template } from "../types";
 
-export const templateService = {
+const templateService = {
   getAllTemplates: async (page: number = 0, size: number = 9) => {
     const response = await api.get(`/templates?page=${page}&size=${size}`);
     return response.data;
@@ -54,5 +54,17 @@ export const templateService = {
   revertToVersion: async (templateId: string, versionId: string) => {
     const response = await api.post(`/templates/${templateId}/versions/${versionId}/revert`);
     return response.data;
+  },
+
+  toggleBookmark: async (id: string) => {
+    const response = await api.post(`/templates/${id}/bookmark`);
+    return response.data;
+  },
+
+  getBookmarkedTemplates: async () => {
+    const response = await api.get('/templates/bookmarked');
+    return response.data;
   }
 };
+
+export default templateService;
