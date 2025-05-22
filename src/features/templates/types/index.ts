@@ -10,6 +10,7 @@ export interface Template {
     otherAreasToConsider: string;
     appendix: string;
     createdBy: string;
+    createdByName: string;
     createdAt: string;
     updatedAt: string;
     likes: string[];

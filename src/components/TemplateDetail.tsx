@@ -31,12 +31,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Save, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Loader2, FileDown, FileText } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import templateService, { Template, CommentType } from "../services/templateService";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Toaster, toast } from 'react-hot-toast';
 import Comments from './Comments';
+import { exportToPdf, exportToMarkdown } from "../utils/exportUtils";
 
 interface TemplateDetailProps {
   userRole?: "read" | "read-write" | "admin";
@@ -202,6 +203,33 @@ const TemplateDetail = ({
     }
   };
 
+  const handleExportPdf = async () => {
+    try {
+      await exportToPdf(template);
+      toast.success('Template exported to PDF');
+    } catch (err) {
+      toast.error('Failed to export template');
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    try {
+      const markdown = exportToMarkdown(template);
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${template.title.toLowerCase().replace(/\s+/g, '-')}.md`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Template exported to Markdown');
+    } catch (err) {
+      toast.error('Failed to export template');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -226,6 +254,18 @@ const TemplateDetail = ({
               ? "Edit Template"
               : "View Template"}
         </h1>
+        {!isNew && (
+          <div className="flex space-x-2 mr-4">
+            <Button variant="outline" size="sm" onClick={handleExportPdf}>
+              <FileDown className="h-4 w-4 mr-1" />
+              Export PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportMarkdown}>
+              <FileText className="h-4 w-4 mr-1" />
+              Export MD
+            </Button>
+          </div>
+        )}
         {isEditable && !isNew && (
           <div className="flex space-x-2">
             <Button onClick={handleSave} variant="default" disabled={saving}>

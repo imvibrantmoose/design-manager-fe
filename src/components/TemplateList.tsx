@@ -369,39 +369,40 @@ const TemplateList = ({
                       </div>
                     )}
                   </CardContent>
-                  <CardFooter className="flex justify-between border-t pt-4">
-                    <div className="flex items-center gap-4">
+                  <CardFooter className="flex items-center justify-between border-t pt-4">
+                    <div className="flex items-center space-x-2">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => handleLike(template.id)}
                         className={(template.likes || []).includes(userId) ? "text-red-500" : ""}
                       >
-                        <Heart className="h-4 w-4 mr-1" />
-                        {(template.likes || []).length}
+                        <Heart className="h-4 w-4" />
+                        <span className="ml-1">{(template.likes || []).length}</span>
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => handleBookmark(template.id)}
                         className={template.isBookmarked ? "text-yellow-500" : ""}
                       >
-                        <Bookmark className="h-4 w-4 mr-1" />
-                        {template.bookmarkCount || 0}
+                        <Bookmark className="h-4 w-4" />
+                        <span className="ml-1">{template.bookmarkCount || 0}</span>
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => navigate(`/templates/${template.id}`)}
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        {template.commentCount || 0}
+                        <MessageCircle className="h-4 w-4" />
+                        <span className="ml-1">{template.commentCount || 0}</span>
                       </Button>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="min-w-[70px]"
                         onClick={() => handleViewTemplate(template.id)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
@@ -413,6 +414,7 @@ const TemplateList = ({
                             <Button
                               variant="outline"
                               size="sm"
+                              className="min-w-[70px]"
                               onClick={() => handleEditTemplate(template.id)}
                             >
                               <Edit className="h-4 w-4 mr-1" />
@@ -425,7 +427,7 @@ const TemplateList = ({
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  className="min-w-[80px] text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                 >
                                   <Trash2 className="h-4 w-4 mr-1" />
                                   Delete
