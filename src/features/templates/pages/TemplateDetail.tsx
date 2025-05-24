@@ -38,31 +38,26 @@ import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Toaster, toast } from 'react-hot-toast';
 import Comments from '../../../components/Comments';
 import { exportToPdf, exportToMarkdown } from "../../../utils/exportUtils";
+import { useCategories } from '../hooks/useCategories';
 
 interface TemplateDetailProps {
-  userRole?: "read" | "read-write" | "admin";
   isNew?: boolean;
+  isEdit?: boolean;
+  userRole?: 'read' | 'read-write' | 'admin';
 }
 
 const TemplateDetail = ({
-  userRole = "read",
   isNew = false,
+  isEdit = false,
+  userRole = 'read',
 }: TemplateDetailProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { categories, loading: categoriesLoading } = useCategories();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("design-context");
-  const [categories, setCategories] = useState<string[]>([
-    "UI Design",
-    "UX Design",
-    "System Design",
-    "Architecture",
-    "Data Visualization",
-    "Product Design",
-    "Web",
-  ]);
   const [comments, setComments] = useState<CommentType[]>([]);
 
   const emptyTemplate: Template = {
@@ -230,6 +225,8 @@ const TemplateDetail = ({
     }
   };
 
+  const mode = isNew ? 'create' : isEdit ? 'edit' : 'view';
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -364,8 +361,8 @@ const TemplateDetail = ({
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

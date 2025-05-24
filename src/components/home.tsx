@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
@@ -70,49 +69,20 @@ const Home = () => {
   return (
     <main className="container mx-auto px-4 py-8">
       {isAuthenticated ? (
-        user?.role === "admin" ? (
-          <Tabs defaultValue="templates" className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="users">User Management</TabsTrigger>
-            </TabsList>
-            <TabsContent value="templates" className="space-y-4">
-              <div className="flex items-center justify-between">
-                {(user.role === "admin" || user.role === "read-write") && (
-                  <Button
-                    onClick={handleCreateTemplate}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create Template
-                  </Button>
-                )}
-              </div>
-              <TemplateListPage userRole={user.role} userId={user.id} />
-            </TabsContent>
-            <TabsContent value="users">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">User Management</h2>
-                <AdminDashboard />
-              </div>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              {user.role === "read-write" && (
-                <Button
-                  onClick={handleCreateTemplate}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create Template
-                </Button>
-              )}
-            </div>
-            <TemplateListPage userRole={user.role} userId={user.id} />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            {user?.role === "read-write" && (
+              <Button
+                onClick={handleCreateTemplate}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Create Template
+              </Button>
+            )}
           </div>
-        )
+          <TemplateListPage userRole={user.role} userId={user.id} />
+        </div>
       ) : (
         <div className="flex min-h-[70vh] flex-col items-center justify-center">
           <Card className="w-full max-w-md">
@@ -147,6 +117,13 @@ const Home = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+      {showAuthModal && (
+        <AuthForms
+          mode={authMode}
+          onClose={() => setShowAuthModal(false)}
+          onLogin={handleLogin}
+        />
       )}
     </main>
   );

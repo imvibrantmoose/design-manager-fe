@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useTemplateList } from '../hooks/useTemplateList';
-import { TemplateCard } from '../components/list/TemplateCard';
+import { TemplateCard } from '../components/TemplateCard';
 import { TemplateFilters } from '../components/list/TemplateFilters';
 import { TemplatePagination } from '../components/list/TemplatePagination';
+import { useCategories } from '../hooks/useCategories';
 
 interface TemplateListPageProps {
   userRole?: 'read' | 'read-write' | 'admin';
@@ -10,6 +11,7 @@ interface TemplateListPageProps {
 }
 
 export const TemplateListPage = ({ userRole = 'read', userId = '' }: TemplateListPageProps) => {
+  const { categories } = useCategories();
   const {
     templates,
     loading,
@@ -25,7 +27,7 @@ export const TemplateListPage = ({ userRole = 'read', userId = '' }: TemplateLis
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const categories = ['all', ...new Set(templates.map((t) => t.category))];
+  const categoryOptions = ['all', ...new Set(templates.map((t) => t.category))];
 
   // Filter templates based on search and category
   const filteredTemplates = useMemo(() => {
@@ -49,7 +51,7 @@ export const TemplateListPage = ({ userRole = 'read', userId = '' }: TemplateLis
   }
 
   return (
-    <div className="container mx-auto py-8 bg-background">
+    <div className="container mx-auto py-8">
       <div className="flex flex-col space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Design Templates</h1>
@@ -63,7 +65,7 @@ export const TemplateListPage = ({ userRole = 'read', userId = '' }: TemplateLis
           onSearchChange={setSearchTerm}
           categoryFilter={categoryFilter}
           onCategoryChange={setCategoryFilter}
-          categories={categories}
+          categories={categories.map(c => c.name)}
         />
 
         {filteredTemplates.length === 0 ? (

@@ -12,4 +12,6 @@ public interface TemplateRepository extends MongoRepository<Template, String>,
     List<Template> findByTitleContainingIgnoreCase(String title);
     List<Template> findByCreatedBy(String userId);
     List<Template> findByBookmarksContaining(String userId);
+    boolean existsByCategory(String category);
+    long countByCategory(String category);
 }
